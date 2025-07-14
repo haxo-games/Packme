@@ -12,7 +12,8 @@ cleaner build system like [CMake](https://cmake.org/) is because I want to keep 
 
 ## Usage
 
-TODO
+In a terminal run the built executable with the following arguments provided according to your needs:
+- `-i`: <b>[REQUIRED]<b>, stands for input and takes a string specifying the executable to process.
 
 ## Contributing
 
