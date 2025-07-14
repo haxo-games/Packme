@@ -15,6 +15,8 @@ namespace Arguments
     // [SECTION] Types
     //
 
+    using ArgumentValue = std::optional<std::variant<std::string, int, bool>>;
+
     enum class Type
     {
         STRING = 0,
@@ -26,8 +28,12 @@ namespace Arguments
     {
         Type type;
         bool is_required;
-        std::optional<std::variant<std::string, int, bool>> value;
-        bool was_specified;
+        ArgumentValue value;
+        bool was_specified{};
+
+        Argument(Type _type, bool _is_required = false, ArgumentValue _value = std::nullopt)
+            : type(_type), is_required(_is_required), value(_value)
+        {}
     };
 
     using Map = std::unordered_map<std::string, Argument>;

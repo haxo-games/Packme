@@ -6,7 +6,7 @@ int main(int argc, char** argv)
 {
     Arguments::Map arguments = 
     {
-        {"-i", {Arguments::Type::BOOLEAN, true, std::nullopt}},
+        {"-i", Arguments::Argument(Arguments::Type::STRING)},
     };
 
     int return_code{ Arguments::parse(argc, argv, arguments) };
