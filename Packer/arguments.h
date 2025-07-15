@@ -33,7 +33,8 @@ namespace Arguments
 
         Argument(Type _type, bool _is_required = false, ArgumentValue _value = std::nullopt)
             : type(_type), is_required(_is_required), value(_value)
-        {}
+        {
+        }
     };
 
     using Map = std::unordered_map<std::string, Argument>;
