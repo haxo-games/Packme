@@ -133,7 +133,7 @@ namespace PE64
         output_pe.sections.resize(output_pe.file_header.NumberOfSections);
         memcpy(output_pe.sections.data(), p_memory + cursor, output_pe.file_header.NumberOfSections * sizeof(IMAGE_SECTION_HEADER));
 
-        return true;
+        return false;
     }
 
     bool parsePeFromResource(HRSRC h_resource, PE& output_pe)

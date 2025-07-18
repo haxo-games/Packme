@@ -5,6 +5,7 @@
 #include "arguments.h"
 #include "resource.h"
 #include "pe64.h"
+#include "utils.h"
 #include "../shared/common.h"
 
 int main(int argc, char** argv)
@@ -40,8 +41,18 @@ int main(int argc, char** argv)
 
     // TODO: Pack input PE and write to stub's new section
 
+    StubConfig* p_stub_stub_config{ reinterpret_cast<StubConfig*>(Utils::stupidPatternScanData((uint8_t*)(stub_config.signature), sizeof(stub_config.signature), stub_pe.section_data[1].data(), stub_pe.sections[1].SizeOfRawData)) };
+    if (p_stub_stub_config == 0)
+    {
+        std::cerr << "[x] Failed to find match for stub config pattern in stub" << std::endl;
+        return 6;
+    }
+
     // Setup config and write to stub
+    stub_config.packed_data_rva = 0;
+    stub_config.packed_data_size = 0;
     stub_config.original_data_size = input_pe.getSize();
+    memcpy(p_stub_stub_config, reinterpret_cast<void*>(const_cast<StubConfig*>(&stub_config)), sizeof(stub_config));
 
     return 0;
 }
