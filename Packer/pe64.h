@@ -21,6 +21,16 @@ namespace PE64
         IMAGE_OPTIONAL_HEADER64 optional_header;
         std::vector<IMAGE_SECTION_HEADER> sections;
         std::vector<std::vector<uint8_t>> section_data;
+
+        size_t getSize()
+        {
+            size_t active_size{ sizeof(dos_header) + dos_stub.size() + sizeof(signature) + sizeof(file_header) + sizeof(optional_header) + (sections.size() * sizeof(IMAGE_SECTION_HEADER)) };
+
+            for (auto& selected_section_data : section_data)
+                active_size += selected_section_data.size();
+
+            return active_size;
+        }
     };
 
     //

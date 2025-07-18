@@ -5,9 +5,11 @@
 #include "arguments.h"
 #include "resource.h"
 #include "pe64.h"
+#include "../shared/common.h"
 
 int main(int argc, char** argv)
 {
+    // Yes an entire little arguments parsing system seems overkill, but it's here for future use
     Arguments::Map arguments =
     {
         {"-i", Arguments::Argument(Arguments::Type::STRING, true)},
@@ -35,6 +37,11 @@ int main(int argc, char** argv)
     PE64::PE stub_pe;
     if (PE64::parsePeFromResource(h_stub_resource, stub_pe))
         return 5;
+
+    // TODO: Pack input PE and write to stub's new section
+
+    // Setup config and write to stub
+    stub_config.original_data_size = input_pe.getSize();
 
     return 0;
 }
