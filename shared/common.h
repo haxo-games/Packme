@@ -2,10 +2,13 @@
 
 #include <cstdint>
 
-struct StubConfig
+extern "C"
 {
-	char signature[8]{ 'H', 'A', 'X', 'O', 'S', 'T', 'U', 'B' };
-	uint32_t packed_data_rva;
-	size_t packed_data_size;
-	size_t original_data_size;
-} inline stub_config;
+    struct StubConfig
+    {
+        char signature[8];
+        unsigned int packed_data_rva;
+        unsigned int packed_data_size;
+        unsigned int original_data_size;
+    } volatile stub_config = { {'H', 'A', 'X', 'O', 'S', 'T', 'U', 'B'} };
+}
