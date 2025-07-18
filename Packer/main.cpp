@@ -13,9 +13,7 @@ int main(int argc, char** argv)
         {"-i", Arguments::Argument(Arguments::Type::STRING, true)},
     };
 
-    int return_code{ Arguments::parse(argc, argv, arguments) };
-
-    if (return_code != 0)
+    if (int return_code{ Arguments::parse(argc, argv, arguments) }; return_code != 0)
     {
         std::cerr << "[x] Failed to parse arguments with error code " << return_code << std::endl;
         return 1;
@@ -35,7 +33,7 @@ int main(int argc, char** argv)
     }
 
     PE64::PE stub_pe;
-    if (PE64::parsePeFromResource(h_stub_resource))
+    if (PE64::parsePeFromResource(h_stub_resource, stub_pe))
         return 5;
 
     return 0;
