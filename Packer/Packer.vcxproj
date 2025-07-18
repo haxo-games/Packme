@@ -130,6 +130,7 @@
   <ItemGroup>
     <ClInclude Include="..\shared\common.h" />
     <ClInclude Include="arguments.h" />
+    <ClInclude Include="pe64.h" />
     <ClInclude Include="resource.h" />
   </ItemGroup>
   <ItemGroup>

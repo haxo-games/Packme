@@ -10,6 +10,9 @@
     <Filter Include="shared">
       <UniqueIdentifier>{25fb033d-b19f-4926-9167-fcd10eed3159}</UniqueIdentifier>
     </Filter>
+    <Filter Include="resources">
+      <UniqueIdentifier>{1d288105-ba24-48a4-9630-b063435fe625}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arguments.h">
@@ -18,13 +21,16 @@
     <ClInclude Include="..\shared\common.h">
       <Filter>shared</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
+    <ClInclude Include="pe64.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>resources</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="stub.rc">
-      <Filter>utils</Filter>
+      <Filter>resources</Filter>
     </ResourceCompile>
   </ItemGroup>
 </Project>
