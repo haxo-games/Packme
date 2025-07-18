@@ -1,9 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36301.6 d17.14
+VisualStudioVersion = 17.14.36301.6
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Packer", "Packer\Packer.vcxproj", "{DFE4B8B7-0247-4416-AA48-19F28CEC27CF}"
+	ProjectSection(ProjectDependencies) = postProject
+		{FB1AFF21-A6BA-4375-9C18-AAAD63EEEE91} = {FB1AFF21-A6BA-4375-9C18-AAAD63EEEE91}
+	EndProjectSection
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Stub", "Stub\Stub.vcxproj", "{FB1AFF21-A6BA-4375-9C18-AAAD63EEEE91}"
 EndProject

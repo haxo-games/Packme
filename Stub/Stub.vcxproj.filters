@@ -3,4 +3,14 @@
   <ItemGroup>
     <ClCompile Include="main.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Filter Include="shared">
+      <UniqueIdentifier>{b21586b8-7571-4e46-bfa9-7ea6d119d020}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\shared\common.h">
+      <Filter>shared</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>
