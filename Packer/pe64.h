@@ -125,4 +125,32 @@ namespace PE64
 
         return true;
     }
+
+    bool parsePeFromResource(HRSRC h_resource, PE& output_pe)
+    {
+        HGLOBAL h_memory{ LoadResource(0, h_resource) };
+
+        if (!h_memory)
+        {
+            std::cerr << "[x] Failed to get handle to resource memory" << std::endl;
+            return true;
+        }
+
+        DWORD resource_size{ SizeofResource(0, h_resource) };
+        LPVOID p_resource_data{ LockResource(h_memory) };
+
+        if (!p_resource_data || resource_size == 0)
+        {
+            std::cerr << "[x] Failed to read resource data or size" << std::endl;
+            return true;
+        }
+
+        std::vector<std::uint8_t> stub_data(resource_size);
+        memcpy(stub_data.data(), p_resource_data, resource_size);
+
+        if (PE64::parsePeFromMemory(stub_data.data(), output_pe))
+            return true;
+
+        return false;
+    }
 }
