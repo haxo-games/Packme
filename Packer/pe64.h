@@ -145,10 +145,7 @@ namespace PE64
             return true;
         }
 
-        std::vector<std::uint8_t> stub_data(resource_size);
-        memcpy(stub_data.data(), p_resource_data, resource_size);
-
-        if (PE64::parsePeFromMemory(stub_data.data(), output_pe))
+        if (PE64::parsePeFromMemory(static_cast<const std::uint8_t*>(p_resource_data), output_pe))
             return true;
 
         return false;
