@@ -10,7 +10,7 @@
 struct PE64
 {
     IMAGE_DOS_HEADER dos_header;
-    // DOS stub usually here
+    std::vector<uint8_t> dos_stub;
     uint32_t signature;
     IMAGE_FILE_HEADER file_header;
     IMAGE_OPTIONAL_HEADER64 optional_header;
@@ -36,7 +36,12 @@ bool parsePeFromFile(const char* path, PE64& output_pe)
         return true;
     }
 
-    input_file.seekg(output_pe.dos_header.e_lfanew + 4); // skip the signature (4 bytes)
+    std::size_t dos_stub_size{ output_pe.dos_header.e_lfanew - sizeof(IMAGE_DOS_HEADER) };
+    output_pe.dos_stub.resize(dos_stub_size);
+
+    input_file.read(reinterpret_cast<char*>(output_pe.dos_stub.data()), dos_stub_size);
+    input_file.read(reinterpret_cast<char*>(&output_pe.signature), sizeof(output_pe.signature));
+
     if (!input_file.good())
     {
         std::cerr << "[x] Failed to seek to PE header" << std::endl;
@@ -92,7 +97,9 @@ bool parsePeFromMemory(const std::uint8_t* p_memory, PE64& output_pe)
     memcpy(&output_pe.dos_header, p_memory + cursor, sizeof(output_pe.dos_header));
     cursor = sizeof(IMAGE_DOS_HEADER);
 
-    std::size_t dos_stub_size = output_pe.dos_header.e_lfanew - sizeof(IMAGE_DOS_HEADER);
+    std::size_t dos_stub_size{ output_pe.dos_header.e_lfanew - sizeof(IMAGE_DOS_HEADER) };
+    output_pe.dos_stub.resize(dos_stub_size);
+    memcpy(output_pe.dos_stub.data(), p_memory + cursor, dos_stub_size);
     cursor = output_pe.dos_header.e_lfanew;
 
     memcpy(&output_pe.signature, p_memory + cursor, sizeof(output_pe.signature));
@@ -163,6 +170,8 @@ int main(int argc, char** argv)
         return 5;
 
     stub_data.clear();
+
+
 
     return 0;
 }

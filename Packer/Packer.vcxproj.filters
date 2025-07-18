@@ -21,7 +21,6 @@
     <ClInclude Include="resource.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="resource1.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="stub.rc">

@@ -131,7 +131,6 @@
     <ClInclude Include="..\shared\common.h" />
     <ClInclude Include="arguments.h" />
     <ClInclude Include="resource.h" />
-    <ClInclude Include="resource1.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="stub.rc" />
