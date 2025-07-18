@@ -87,13 +87,16 @@ bool parsePeFromFile(const char* path, PE64& output_pe)
 
 bool parsePeFromMemory(const std::uint8_t* p_memory, PE64& output_pe)
 {
-    std::uint8_t cursor{};
+    std::uint32_t cursor{};
 
-    memcpy(&output_pe.dos_header, p_memory, sizeof(output_pe.dos_header));
-    cursor += output_pe.dos_header.e_lfanew;
+    memcpy(&output_pe.dos_header, p_memory + cursor, sizeof(output_pe.dos_header));
+    cursor = sizeof(IMAGE_DOS_HEADER);
 
-    memcpy(&output_pe.signature, p_memory + cursor, 4);
-    cursor += 4;
+    std::size_t dos_stub_size = output_pe.dos_header.e_lfanew - sizeof(IMAGE_DOS_HEADER);
+    cursor = output_pe.dos_header.e_lfanew;
+
+    memcpy(&output_pe.signature, p_memory + cursor, sizeof(output_pe.signature));
+    cursor += sizeof(output_pe.signature);
 
     memcpy(&output_pe.file_header, p_memory + cursor, sizeof(output_pe.file_header));
     cursor += sizeof(output_pe.file_header);
@@ -101,7 +104,10 @@ bool parsePeFromMemory(const std::uint8_t* p_memory, PE64& output_pe)
     memcpy(&output_pe.optional_header, p_memory + cursor, sizeof(output_pe.optional_header));
     cursor += sizeof(output_pe.optional_header);
 
-    return false;
+    output_pe.sections.resize(output_pe.file_header.NumberOfSections);
+    memcpy(output_pe.sections.data(), p_memory + cursor, output_pe.file_header.NumberOfSections * sizeof(IMAGE_SECTION_HEADER));
+
+    return true;
 }
 
 int main(int argc, char** argv)
