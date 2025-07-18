@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <windows.h>
+#include <zlib.h>
 
 namespace PE64
 {
@@ -21,6 +22,42 @@ namespace PE64
         IMAGE_OPTIONAL_HEADER64 optional_header;
         std::vector<IMAGE_SECTION_HEADER> sections;
         std::vector<std::vector<uint8_t>> section_data;
+
+        std::vector<std::uint8_t> zlibCompress()
+        {
+            auto raw_data{ getRaw() };
+
+            uLongf compressed_size{ compressBound(raw_data.size()) };
+            std::vector<uint8_t> compressed_data(compressed_size);
+
+            if (compress(compressed_data.data(), &compressed_size, raw_data.data(), raw_data.size()) != Z_OK)
+            {
+                compressed_data.clear();
+                return compressed_data;
+            }
+
+            compressed_data.resize(compressed_size);
+            return compressed_data;
+        }
+
+        std::vector<uint8_t> getRaw()
+        {
+            std::vector<uint8_t> raw_data;
+
+            raw_data.insert(raw_data.end(), (uint8_t*)&dos_header, (uint8_t*)&dos_header + sizeof(dos_header));
+            raw_data.insert(raw_data.end(), dos_stub.begin(), dos_stub.end());
+            raw_data.insert(raw_data.end(), (uint8_t*)&signature, (uint8_t*)&signature + sizeof(signature));
+            raw_data.insert(raw_data.end(), (uint8_t*)&file_header, (uint8_t*)&file_header + sizeof(file_header));
+            raw_data.insert(raw_data.end(), (uint8_t*)&optional_header, (uint8_t*)&optional_header + sizeof(optional_header));
+
+            for (const auto& section : sections)
+                raw_data.insert(raw_data.end(), (uint8_t*)&section, (uint8_t*)&section + sizeof(section));
+
+            for (const auto& section_data_item : section_data)
+                raw_data.insert(raw_data.end(), section_data_item.begin(), section_data_item.end());
+
+            return raw_data;
+        }
 
         size_t getSize()
         {

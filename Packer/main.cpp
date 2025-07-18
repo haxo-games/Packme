@@ -37,22 +37,41 @@ int main(int argc, char** argv)
 
     PE64::PE stub_pe;
     if (PE64::parsePeFromResource(h_stub_resource, stub_pe))
-        return 5;
+        return 3;
 
-    // TODO: Pack input PE and write to stub's new section
+    auto compressed_input_pe{ input_pe.zlibCompress() };
 
+    IMAGE_SECTION_HEADER new_section{};
+    memcpy(new_section.Name, ".packed", 8);
+    new_section.VirtualAddress = stub_pe.optional_header.SizeOfImage;
+    new_section.Misc.VirtualSize = compressed_input_pe.size();
+    new_section.PointerToRawData = stub_pe.sections.back().PointerToRawData + stub_pe.sections.back().SizeOfRawData;
+    new_section.SizeOfRawData = compressed_input_pe.size();
+    new_section.Characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ;
+
+    stub_pe.sections.push_back(new_section);
+    stub_pe.section_data.push_back(compressed_input_pe);
+    stub_pe.file_header.NumberOfSections++;
+    stub_pe.optional_header.SizeOfImage += compressed_input_pe.size();
+
+    // Stub project is configure to only have two sections: .text and .rdata (rdata comes after .text).
     StubConfig* p_stub_stub_config{ reinterpret_cast<StubConfig*>(Utils::stupidPatternScanData((uint8_t*)(stub_config.signature), sizeof(stub_config.signature), stub_pe.section_data[1].data(), stub_pe.sections[1].SizeOfRawData)) };
     if (p_stub_stub_config == 0)
     {
         std::cerr << "[x] Failed to find match for stub config pattern in stub" << std::endl;
-        return 6;
+        return 4;
     }
 
     // Setup config and write to stub
-    stub_config.packed_data_rva = 0;
-    stub_config.packed_data_size = 0;
+    stub_config.packed_data_rva = new_section.VirtualAddress;
+    stub_config.packed_data_size = compressed_input_pe.size();
     stub_config.original_data_size = input_pe.getSize();
     memcpy(p_stub_stub_config, reinterpret_cast<void*>(const_cast<StubConfig*>(&stub_config)), sizeof(stub_config));
+
+    std::ofstream output("packed.exe", std::ios::binary);
+    auto raw_stub{ stub_pe.getRaw() };
+    output.write(reinterpret_cast<const char*>(raw_stub.data()), raw_stub.size());
+    output.close();
 
     return 0;
 }
