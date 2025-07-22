@@ -13,6 +13,12 @@
     <Filter Include="resources">
       <UniqueIdentifier>{1d288105-ba24-48a4-9630-b063435fe625}</UniqueIdentifier>
     </Filter>
+    <Filter Include="dependencies">
+      <UniqueIdentifier>{291e1438-0892-4c6b-b76d-d99a1c6c3f26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="dependencies\zlib">
+      <UniqueIdentifier>{881d3519-387d-4ca9-9576-796389f4d597}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="arguments.h">
@@ -29,6 +35,12 @@
     </ClInclude>
     <ClInclude Include="utils.h">
       <Filter>utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\zconf.h">
+      <Filter>dependencies\zlib</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dependencies\include\zlib.h">
+      <Filter>dependencies\zlib</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
