@@ -54,8 +54,8 @@ int main(int argc, char** argv)
     stub_pe.file_header.NumberOfSections++;
     stub_pe.optional_header.SizeOfImage += compressed_input_pe.size();
 
-    // Stub project is configure to only have two sections: .text and .rdata (rdata comes after .text).
-    StubConfig* p_stub_stub_config{ reinterpret_cast<StubConfig*>(Utils::stupidPatternScanData((uint8_t*)(stub_config.signature), sizeof(stub_config.signature), stub_pe.section_data[1].data(), stub_pe.sections[1].SizeOfRawData)) };
+    // Stub project is configured to have 3 secttions: .text, .rdata and .data (data comes last).
+    StubConfig* p_stub_stub_config{ reinterpret_cast<StubConfig*>(Utils::stupidPatternScanData((uint8_t*)(stub_config.signature), sizeof(stub_config.signature), stub_pe.section_data[2].data(), stub_pe.sections[2].SizeOfRawData)) };
     if (p_stub_stub_config == 0)
     {
         std::cerr << "[x] Failed to find match for stub config pattern in stub" << std::endl;

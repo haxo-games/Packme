@@ -10,5 +10,5 @@ extern "C"
         unsigned int packed_data_rva;
         unsigned int packed_data_size;
         unsigned int original_data_size;
-    } volatile inline stub_config = { {'H', 'A', 'X', 'O', 'S', 'T', 'U', 'B'} };
+    } volatile stub_config = { {'H', 'A', 'X', 'O', 'S', 'T', 'U', 'B'} };
 }
