@@ -8,6 +8,12 @@
 #include "utils.h"
 #include "../shared/common.h"
 
+template <typename T>
+T align(T value, T alignment) {
+    auto result = value + ((value % alignment == 0) ? 0 : alignment - (value % alignment));
+    return result;
+}
+
 int main(int argc, char** argv)
 {
     // Yes an entire little arguments parsing system seems overkill, but it's here for future use
@@ -41,6 +47,9 @@ int main(int argc, char** argv)
 
     auto compressed_input_pe{ input_pe.zlibCompress() };
 
+    if (compressed_input_pe.size() % stub_pe.optional_header.FileAlignment != 0)
+        compressed_input_pe.resize(align<std::size_t>(compressed_input_pe.size(), stub_pe.optional_header.FileAlignment));
+
     IMAGE_SECTION_HEADER new_section{};
     memcpy(new_section.Name, ".packed", 8);
     new_section.VirtualAddress = stub_pe.optional_header.SizeOfImage;
@@ -53,6 +62,7 @@ int main(int argc, char** argv)
     stub_pe.section_data.push_back(compressed_input_pe);
     stub_pe.file_header.NumberOfSections++;
     stub_pe.optional_header.SizeOfImage += compressed_input_pe.size();
+    stub_pe.optional_header.SizeOfHeaders += sizeof(IMAGE_SECTION_HEADER); // I think?
 
     // Stub project is configured to have 3 secttions: .text, .rdata and .data (data comes last).
     StubConfig* p_stub_stub_config{ reinterpret_cast<StubConfig*>(Utils::stupidPatternScanData((uint8_t*)(stub_config.signature), sizeof(stub_config.signature), stub_pe.section_data[2].data(), stub_pe.sections[2].SizeOfRawData)) };
