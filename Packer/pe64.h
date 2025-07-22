@@ -170,6 +170,19 @@ namespace PE64
         output_pe.sections.resize(output_pe.file_header.NumberOfSections);
         memcpy(output_pe.sections.data(), p_memory + cursor, output_pe.file_header.NumberOfSections * sizeof(IMAGE_SECTION_HEADER));
 
+        output_pe.section_data.resize(output_pe.file_header.NumberOfSections);
+
+        for (int i{}; i < output_pe.file_header.NumberOfSections; i++)
+        {
+            const auto& section = output_pe.sections[i];
+
+            if (section.SizeOfRawData > 0 && section.PointerToRawData > 0)
+            {
+                output_pe.section_data[i].resize(section.SizeOfRawData);
+                memcpy(output_pe.section_data[i].data(), p_memory + section.PointerToRawData, section.SizeOfRawData);
+            }
+        }
+
         return false;
     }
 
