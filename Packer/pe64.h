@@ -40,6 +40,76 @@ namespace PE64
             return compressed_data;
         }
 
+        IMAGE_SECTION_HEADER* findSectionByName(const char* section_name)
+        {
+            for (const auto& section : sections)
+            {
+                if (strncmp(section_name, reinterpret_cast<const char*>(section.Name), strlen(section_name)) == 0)
+                    return const_cast<IMAGE_SECTION_HEADER*>(&section);
+            }
+
+            return nullptr;
+        }
+
+        IMAGE_SECTION_HEADER* findLastPhysicalSection()
+        {
+            DWORD highest_file_end{};
+            IMAGE_SECTION_HEADER* p_last_physical_section{};
+
+            for (const auto& section : sections)
+            {
+                /* Skip virtual sections. They don't take up any file space. */
+                if (section.SizeOfRawData == 0)
+                    continue;
+
+                DWORD file_end{ section.PointerToRawData + section.SizeOfRawData };
+
+                if (file_end > highest_file_end)
+                {
+                    highest_file_end = file_end;
+                    p_last_physical_section = const_cast<IMAGE_SECTION_HEADER*>(&section);
+                }
+            }
+
+            return p_last_physical_section;
+        }
+
+        // Alright I think the naming might be conflicting here but whatever
+        IMAGE_SECTION_HEADER* findLastVirtualSection()
+        {
+            DWORD highest_virtual_end{};
+            IMAGE_SECTION_HEADER* p_last_virtual_section{};
+
+            for (const auto& section : sections)
+            {
+                DWORD virtual_end{ section.VirtualAddress + section.Misc.VirtualSize };
+
+                if (virtual_end > highest_virtual_end)
+                {
+                    highest_virtual_end = virtual_end;
+                    p_last_virtual_section = const_cast<IMAGE_SECTION_HEADER*>(&section);
+                }
+            }
+
+            return p_last_virtual_section;
+        }
+
+        uint8_t* getSectionData(IMAGE_SECTION_HEADER& section)
+        {
+            for (size_t i{}; i < sections.size(); i++)
+            {
+                if (&sections[i] == &section)
+                {
+                    if (i < section_data.size() && !section_data[i].empty())
+                        return section_data[i].data();
+                    else
+                        return nullptr;
+                }
+            }
+
+            return nullptr;
+        }
+
         std::vector<uint8_t> getRaw()
         {
             std::vector<uint8_t> raw_data;
@@ -53,8 +123,29 @@ namespace PE64
             for (const auto& section : sections)
                 raw_data.insert(raw_data.end(), (uint8_t*)&section, (uint8_t*)&section + sizeof(section));
 
-            for (const auto& section_data_item : section_data)
-                raw_data.insert(raw_data.end(), section_data_item.begin(), section_data_item.end());
+            DWORD first_section_offset = UINT32_MAX;
+            for (const auto& section : sections)
+            {
+                if (section.PointerToRawData > 0 && section.PointerToRawData < first_section_offset)
+                    first_section_offset = section.PointerToRawData;
+            }
+
+            while (raw_data.size() < first_section_offset)
+                raw_data.push_back(0);
+
+            for (size_t i{}; i < sections.size(); i++) 
+            {
+                const auto& section = sections[i];
+
+                if (section.SizeOfRawData > 0) 
+                {
+                    while (raw_data.size() < section.PointerToRawData)
+                        raw_data.push_back(0);
+
+                    if (i < section_data.size())
+                        raw_data.insert(raw_data.end(), section_data[i].begin(), section_data[i].end());
+                }
+            }
 
             return raw_data;
         }

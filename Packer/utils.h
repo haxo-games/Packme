@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <iostream>
 
@@ -29,5 +29,14 @@ namespace Utils
 
         std::cerr << "[x] Failed to find pattern match" << std::endl;
         return 0;
+    }
+
+    template<typename T> 
+    T align(T value, T alignment)
+    {
+        // We subtract 1 to handle the already-aligned case correctly.
+        // Without -1: align(4096, 4096) = (4096+4096)/4096 * 4096 = 8192 <-- BAD
+        // With -1: align(4096, 4096) = (4096+4095)/4096 * 4096 = 4096    <-- GOOD
+        return ((value + alignment - 1) / alignment) * alignment;
     }
 }

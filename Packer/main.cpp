@@ -8,12 +8,6 @@
 #include "utils.h"
 #include "../shared/common.h"
 
-template <typename T>
-T align(T value, T alignment) {
-    auto result = value + ((value % alignment == 0) ? 0 : alignment - (value % alignment));
-    return result;
-}
-
 int main(int argc, char** argv)
 {
     // Yes an entire little arguments parsing system seems overkill, but it's here for future use
@@ -46,35 +40,52 @@ int main(int argc, char** argv)
         return 3;
 
     auto compressed_input_pe{ input_pe.zlibCompress() };
+    size_t original_compressed_pe_size{ compressed_input_pe.size() };
+    size_t new_compressed_pe_size{ Utils::align<std::size_t>(compressed_input_pe.size(), stub_pe.optional_header.FileAlignment) };
+    IMAGE_SECTION_HEADER* p_last_physical_section{ stub_pe.findLastPhysicalSection() };
+    IMAGE_SECTION_HEADER* p_last_virtual_section{ stub_pe.findLastVirtualSection() };
 
-    if (compressed_input_pe.size() % stub_pe.optional_header.FileAlignment != 0)
-        compressed_input_pe.resize(align<std::size_t>(compressed_input_pe.size(), stub_pe.optional_header.FileAlignment));
+    compressed_input_pe.resize(new_compressed_pe_size);
 
     IMAGE_SECTION_HEADER new_section{};
     memcpy(new_section.Name, ".packed", 8);
-    new_section.VirtualAddress = stub_pe.optional_header.SizeOfImage;
-    new_section.Misc.VirtualSize = compressed_input_pe.size();
-    new_section.PointerToRawData = stub_pe.sections.back().PointerToRawData + stub_pe.sections.back().SizeOfRawData;
-    new_section.SizeOfRawData = compressed_input_pe.size();
+    new_section.VirtualAddress = Utils::align<DWORD>(p_last_virtual_section->VirtualAddress + p_last_virtual_section->Misc.VirtualSize, stub_pe.optional_header.SectionAlignment);
+    new_section.Misc.VirtualSize = original_compressed_pe_size;
+    new_section.PointerToRawData = Utils::align<DWORD>(p_last_physical_section->PointerToRawData + p_last_physical_section->SizeOfRawData, stub_pe.optional_header.FileAlignment);
+    new_section.SizeOfRawData = new_compressed_pe_size;
+    
     new_section.Characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ;
 
     stub_pe.sections.push_back(new_section);
     stub_pe.section_data.push_back(compressed_input_pe);
     stub_pe.file_header.NumberOfSections++;
-    stub_pe.optional_header.SizeOfImage += compressed_input_pe.size();
-    stub_pe.optional_header.SizeOfHeaders += sizeof(IMAGE_SECTION_HEADER); // I think?
+    stub_pe.optional_header.SizeOfImage = Utils::align<DWORD>(new_section.VirtualAddress + new_section.Misc.VirtualSize, stub_pe.optional_header.SectionAlignment);
+    stub_pe.optional_header.SizeOfInitializedData += new_section.SizeOfRawData;
 
-    // Stub project is configured to have 3 secttions: .text, .rdata and .data (data comes last).
-    StubConfig* p_stub_stub_config{ reinterpret_cast<StubConfig*>(Utils::stupidPatternScanData((uint8_t*)(stub_config.signature), sizeof(stub_config.signature), stub_pe.section_data[2].data(), stub_pe.sections[2].SizeOfRawData)) };
+    auto p_init_data_section{ stub_pe.findSectionByName(".data") };
+    if (!p_init_data_section)
+    {
+        std::cerr << "[x] Failed to find \".data\" section" << std::endl;
+        return 4;
+    }
+
+    auto p_init_data{ stub_pe.getSectionData(*p_init_data_section) };
+    if (!p_init_data)
+    {
+        std::cerr << "[x] Failed to find \".data\" section's data" << std::endl;
+        return 5;
+    }
+
+    StubConfig* p_stub_stub_config{ reinterpret_cast<StubConfig*>(Utils::stupidPatternScanData((uint8_t*)(stub_config.signature), sizeof(stub_config.signature), p_init_data, p_init_data_section->SizeOfRawData)) };
     if (p_stub_stub_config == 0)
     {
         std::cerr << "[x] Failed to find match for stub config pattern in stub" << std::endl;
-        return 4;
+        return 6;
     }
 
     // Setup config and write to stub
     stub_config.packed_data_rva = new_section.VirtualAddress;
-    stub_config.packed_data_size = compressed_input_pe.size();
+    stub_config.packed_data_size = original_compressed_pe_size;
     stub_config.original_data_size = input_pe.getSize();
     memcpy(p_stub_stub_config, reinterpret_cast<void*>(const_cast<StubConfig*>(&stub_config)), sizeof(stub_config));
 
