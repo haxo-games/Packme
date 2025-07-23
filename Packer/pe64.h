@@ -123,7 +123,7 @@ namespace PE64
             for (const auto& section : sections)
                 raw_data.insert(raw_data.end(), (uint8_t*)&section, (uint8_t*)&section + sizeof(section));
 
-            DWORD first_section_offset = UINT32_MAX;
+            DWORD first_section_offset{ UINT32_MAX };
             for (const auto& section : sections)
             {
                 if (section.PointerToRawData > 0 && section.PointerToRawData < first_section_offset)
