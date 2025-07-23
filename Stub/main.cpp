@@ -1,11 +1,11 @@
+#include <cstdio>
+
 #include <windows.h>
 #include <zlib.h>
 
 #include "../shared/common.h"
 
-#pragma comment(lib, "libucrt.lib")
-
-void main()
+int main()
 {
 	// DO NOT REMOVE! PREVENTS COMPILER FROM OPTIMIZING AWAY
 	(void)stub_config;
@@ -21,7 +21,7 @@ void main()
 		ExitProcess(2);
 
 	uLongf dest_len{ stub_config.original_data_size };
-	int return_code{ uncompress(static_cast<Bytef*>(p_unpacked), &dest_len, p_packed, stub_config.packed_data_size)};
+	int return_code{ uncompress(static_cast<Bytef*>(p_unpacked), &dest_len, p_packed, stub_config.packed_data_size) };
 
 	if (return_code != Z_OK || dest_len != stub_config.original_data_size)
 	{
@@ -31,7 +31,7 @@ void main()
 
 	IMAGE_DOS_HEADER* p_dos_header{ reinterpret_cast<IMAGE_DOS_HEADER*>(p_unpacked) };
 	IMAGE_NT_HEADERS64* p_nt_headers{ reinterpret_cast<IMAGE_NT_HEADERS64*>(reinterpret_cast<uintptr_t>(p_unpacked) + p_dos_header->e_lfanew) };
-	uintptr_t delta_address{ reinterpret_cast<uintptr_t>(p_unpacked) - p_nt_headers->OptionalHeader.ImageBase};
+	uintptr_t delta_address{ reinterpret_cast<uintptr_t>(p_unpacked) - p_nt_headers->OptionalHeader.ImageBase };
 
 	/* Perform relocation */
 	if (delta_address)
@@ -42,5 +42,5 @@ void main()
 
 	VirtualFree(p_unpacked, 0, MEM_RELEASE);
 
-	ExitProcess(0);
+	return 0;
 }
