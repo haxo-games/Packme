@@ -31,7 +31,7 @@ int main()
 
 	IMAGE_DOS_HEADER* p_dos_header{ reinterpret_cast<IMAGE_DOS_HEADER*>(p_unpacked) };
 	IMAGE_NT_HEADERS64* p_nt_headers{ reinterpret_cast<IMAGE_NT_HEADERS64*>(reinterpret_cast<uintptr_t>(p_unpacked) + p_dos_header->e_lfanew) };
-	uintptr_t delta_address{ reinterpret_cast<uintptr_t>(p_unpacked) - p_nt_headers->OptionalHeader.ImageBase };
+	uint32_t delta_address{ reinterpret_cast<uintptr_t>(p_unpacked) - p_nt_headers->OptionalHeader.ImageBase };
 
 	/* Perform relocation */
 	if (delta_address)
@@ -51,17 +51,26 @@ int main()
 				// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#base-relocation-types
 				switch (type)
 				{
-				case IMAGE_REL_BASED_ABSOLUTE:
-					break;
 				case IMAGE_REL_BASED_HIGH:
+					*reinterpret_cast<uint16_t*>(location) += static_cast<uint16_t>(delta_address >> 16);
 					break;
 				case IMAGE_REL_BASED_LOW:
+					*reinterpret_cast<uint16_t*>(location) += static_cast<uint16_t>(delta_address);
 					break;
 				case IMAGE_REL_BASED_HIGHLOW:
+					*reinterpret_cast<uint32_t*>(location) += delta_address;
 					break;
 				case IMAGE_REL_BASED_HIGHADJ:
+					uint16_t next_entry{ p_relocation_entry[i + 1] };
+					uint32_t full_value{ (static_cast<uint32_t>(*reinterpret_cast<uint16_t*>(location)) << 16) + next_entry };
+
+					full_value += delta_address;
+					*reinterpret_cast<uint16_t*>(location) = static_cast<uint16_t>(full_value >> 16);
+					i++;
+
 					break;
 				case IMAGE_REL_BASED_DIR64:
+					*reinterpret_cast<uint64_t*>(location) += delta_address;
 					break;
 				}
 			}
