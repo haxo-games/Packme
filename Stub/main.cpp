@@ -23,6 +23,7 @@ int main()
 	uLongf dest_len{ stub_config.original_data_size };
 	int return_code{ uncompress(static_cast<Bytef*>(p_unpacked), &dest_len, p_packed, stub_config.packed_data_size) };
 
+	// BUG WITH DECOMPRESSION HERE
 	if (return_code != Z_OK || dest_len != stub_config.original_data_size)
 	{
 		VirtualFree(p_unpacked, 0, MEM_RELEASE);
