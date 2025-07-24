@@ -31,13 +31,49 @@ int main()
 
 	IMAGE_DOS_HEADER* p_dos_header{ reinterpret_cast<IMAGE_DOS_HEADER*>(p_unpacked) };
 	IMAGE_NT_HEADERS64* p_nt_headers{ reinterpret_cast<IMAGE_NT_HEADERS64*>(p_unpacked + p_dos_header->e_lfanew) };
+
+	uintptr_t p_final_unpacked{ reinterpret_cast<uintptr_t>(VirtualAlloc(nullptr, p_nt_headers->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) };
+
+	if (!p_final_unpacked)
+		return 4;
+
+	// Copy all headers
+	size_t size_of_headers{ p_dos_header->e_lfanew + sizeof(IMAGE_NT_HEADERS) + sizeof(IMAGE_SECTION_HEADER) * p_nt_headers->FileHeader.NumberOfSections };
+	memcpy(reinterpret_cast<void*>(p_final_unpacked), reinterpret_cast<void*>(p_unpacked), size_of_headers);
+
+	// Process sections
+	IMAGE_SECTION_HEADER* p_section_headers = IMAGE_FIRST_SECTION(p_nt_headers);
+	for (int i{}; i < p_nt_headers->FileHeader.NumberOfSections; i++)
+	{
+		IMAGE_SECTION_HEADER* current_section = &p_section_headers[i];
+		uintptr_t dest_va = p_final_unpacked + current_section->VirtualAddress;
+
+		if (current_section->SizeOfRawData > 0)
+		{
+			uintptr_t src_raw = p_unpacked + current_section->PointerToRawData;
+			memcpy(reinterpret_cast<void*>(dest_va), reinterpret_cast<void*>(src_raw), current_section->SizeOfRawData);
+
+			if (current_section->Misc.VirtualSize > current_section->SizeOfRawData)
+				memset(reinterpret_cast<void*>(dest_va + current_section->SizeOfRawData), 0, current_section->Misc.VirtualSize - current_section->SizeOfRawData);
+		}
+		else if (current_section->Misc.VirtualSize > 0)
+			memset(reinterpret_cast<void*>(dest_va), 0, current_section->Misc.VirtualSize);
+	}
+
+	// Free old unpacked and assign p_unpacked to the final one
+	VirtualFree(reinterpret_cast<void*>(p_unpacked), 0, MEM_RELEASE);
+	p_unpacked = p_final_unpacked;
+
+	p_dos_header = reinterpret_cast<IMAGE_DOS_HEADER*>(p_unpacked);
+	p_nt_headers = reinterpret_cast<IMAGE_NT_HEADERS64*>(p_unpacked + p_dos_header->e_lfanew);
+
 	uint32_t delta_address{ p_unpacked - p_nt_headers->OptionalHeader.ImageBase };
 
 	/* Perform relocation */
 	if (delta_address)
 	{
 		if (!p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
-			return 4;
+			return 5;
 
 		IMAGE_BASE_RELOCATION* p_relocation{ reinterpret_cast<IMAGE_BASE_RELOCATION*>(p_unpacked + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress) };
 		while (reinterpret_cast<uintptr_t>(p_relocation) < p_unpacked + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
@@ -47,7 +83,7 @@ int main()
 			{
 				uint8_t type{ (p_relocation_entry[i] & 0xF000) >> 12 };
 				uintptr_t location{ p_unpacked + p_relocation->VirtualAddress + (p_relocation_entry[i] & 0x0FFF) };
-				
+
 				// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#base-relocation-types
 				switch (type)
 				{
@@ -89,7 +125,7 @@ int main()
 			HMODULE h_module{ LoadLibraryA(module_name) };
 
 			if (!h_module)
-				return 5;
+				return 6;
 
 			IMAGE_THUNK_DATA* p_int{ reinterpret_cast<IMAGE_THUNK_DATA*>(p_unpacked + p_import_descriptor->OriginalFirstThunk) };
 			IMAGE_THUNK_DATA* p_iat{ reinterpret_cast<IMAGE_THUNK_DATA*>(p_unpacked + p_import_descriptor->FirstThunk) };
@@ -98,19 +134,19 @@ int main()
 			{
 				FARPROC function_address{};
 
-				if (IMAGE_SNAP_BY_ORDINAL(p_int->u1.Ordinal)) 
+				if (IMAGE_SNAP_BY_ORDINAL(p_int->u1.Ordinal))
 				{
 					WORD ordinal{ IMAGE_ORDINAL(p_int->u1.Ordinal) };
 					function_address = GetProcAddress(h_module, MAKEINTRESOURCEA(ordinal));
 				}
-				else 
+				else
 				{
 					IMAGE_IMPORT_BY_NAME* p_import_by_name = reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(reinterpret_cast<uintptr_t>(p_unpacked) + p_int->u1.AddressOfData);
 					function_address = GetProcAddress(h_module, p_import_by_name->Name);
 				}
 
 				if (function_address == nullptr)
-					return 6;
+					return 7;
 
 				p_iat->u1.Function = reinterpret_cast<ULONG_PTR>(function_address);
 
@@ -122,7 +158,10 @@ int main()
 		}
 	}
 
-	VirtualFree(reinterpret_cast<void*>(p_unpacked), 0, MEM_RELEASE);
+	// This assumes a console app entry point
+	uintptr_t p_entry{ p_unpacked + p_nt_headers->OptionalHeader.AddressOfEntryPoint };
+	int result{ reinterpret_cast<int(*)()>(p_unpacked + p_nt_headers->OptionalHeader.AddressOfEntryPoint)()};
 
-	return 0;
+	VirtualFree(reinterpret_cast<void*>(p_unpacked), 0, MEM_RELEASE);
+	return result;
 }
