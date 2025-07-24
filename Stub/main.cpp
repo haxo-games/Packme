@@ -1,4 +1,4 @@
-#include <cstdio>
+#include <cstdio> 
 
 #include <windows.h>
 #include <zlib.h>
@@ -16,22 +16,22 @@ int main()
 
 	uint8_t* p_packed{ reinterpret_cast<uint8_t*>(h_module) + stub_config.packed_data_rva };
 
-	void* p_unpacked{ VirtualAlloc(nullptr, stub_config.original_data_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE) };
+	uintptr_t p_unpacked{ reinterpret_cast<uintptr_t>(VirtualAlloc(nullptr, stub_config.original_data_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) };
 	if (!p_unpacked)
 		return 2;
 
 	uLongf dest_len{ stub_config.original_data_size };
-	int return_code{ uncompress(static_cast<Bytef*>(p_unpacked), &dest_len, p_packed, stub_config.packed_data_size) };
+	int return_code{ uncompress(reinterpret_cast<Bytef*>(p_unpacked), &dest_len, p_packed, stub_config.packed_data_size) };
 
 	if (return_code != Z_OK)
 	{
-		VirtualFree(p_unpacked, 0, MEM_RELEASE);
+		VirtualFree(reinterpret_cast<void*>(p_unpacked), 0, MEM_RELEASE);
 		return 3;
 	}
 
 	IMAGE_DOS_HEADER* p_dos_header{ reinterpret_cast<IMAGE_DOS_HEADER*>(p_unpacked) };
-	IMAGE_NT_HEADERS64* p_nt_headers{ reinterpret_cast<IMAGE_NT_HEADERS64*>(reinterpret_cast<uintptr_t>(p_unpacked) + p_dos_header->e_lfanew) };
-	uint32_t delta_address{ reinterpret_cast<uintptr_t>(p_unpacked) - p_nt_headers->OptionalHeader.ImageBase };
+	IMAGE_NT_HEADERS64* p_nt_headers{ reinterpret_cast<IMAGE_NT_HEADERS64*>(p_unpacked + p_dos_header->e_lfanew) };
+	uint32_t delta_address{ p_unpacked - p_nt_headers->OptionalHeader.ImageBase };
 
 	/* Perform relocation */
 	if (delta_address)
@@ -39,14 +39,14 @@ int main()
 		if (!p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
 			return 4;
 
-		IMAGE_BASE_RELOCATION* p_relocation{ reinterpret_cast<IMAGE_BASE_RELOCATION*>(reinterpret_cast<uintptr_t>(p_unpacked) + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress) };
-		while (reinterpret_cast<uintptr_t>(p_relocation) < reinterpret_cast<uintptr_t>(p_unpacked) + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
+		IMAGE_BASE_RELOCATION* p_relocation{ reinterpret_cast<IMAGE_BASE_RELOCATION*>(p_unpacked + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress) };
+		while (reinterpret_cast<uintptr_t>(p_relocation) < p_unpacked + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
 		{
 			uint16_t* p_relocation_entry{ reinterpret_cast<uint16_t*>(reinterpret_cast<uintptr_t>(p_relocation) + sizeof(IMAGE_BASE_RELOCATION)) };
 			for (int i{}; i < (p_relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(uint16_t); i++)
 			{
 				uint8_t type{ (p_relocation_entry[i] & 0xF000) >> 12 };
-				uintptr_t location{ reinterpret_cast<uintptr_t>(p_unpacked) + p_relocation->VirtualAddress + (p_relocation_entry[i] & 0x0FFF) };
+				uintptr_t location{ p_unpacked + p_relocation->VirtualAddress + (p_relocation_entry[i] & 0x0FFF) };
 				
 				// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#base-relocation-types
 				switch (type)
@@ -79,7 +79,50 @@ int main()
 		}
 	}
 
-	VirtualFree(p_unpacked, 0, MEM_RELEASE);
+	/* Fix imports */
+	if (p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].Size)
+	{
+		IMAGE_IMPORT_DESCRIPTOR* p_import_descriptor{ reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR*>(p_unpacked + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress) };
+		while (p_import_descriptor->Name != 0)
+		{
+			const char* module_name{ reinterpret_cast<char*>(p_unpacked + p_import_descriptor->Name) };
+			HMODULE h_module{ LoadLibraryA(module_name) };
+
+			if (!h_module)
+				return 5;
+
+			IMAGE_THUNK_DATA* p_int{ reinterpret_cast<IMAGE_THUNK_DATA*>(p_unpacked + p_import_descriptor->OriginalFirstThunk) };
+			IMAGE_THUNK_DATA* p_iat{ reinterpret_cast<IMAGE_THUNK_DATA*>(p_unpacked + p_import_descriptor->FirstThunk) };
+
+			while (p_int->u1.AddressOfData != 0)
+			{
+				FARPROC function_address{};
+
+				if (IMAGE_SNAP_BY_ORDINAL(p_int->u1.Ordinal)) 
+				{
+					WORD ordinal{ IMAGE_ORDINAL(p_int->u1.Ordinal) };
+					function_address = GetProcAddress(h_module, MAKEINTRESOURCEA(ordinal));
+				}
+				else 
+				{
+					IMAGE_IMPORT_BY_NAME* p_import_by_name = reinterpret_cast<IMAGE_IMPORT_BY_NAME*>(reinterpret_cast<uintptr_t>(p_unpacked) + p_int->u1.AddressOfData);
+					function_address = GetProcAddress(h_module, p_import_by_name->Name);
+				}
+
+				if (function_address == nullptr)
+					return 6;
+
+				p_iat->u1.Function = reinterpret_cast<ULONG_PTR>(function_address);
+
+				p_int++;
+				p_iat++;
+			}
+
+			p_import_descriptor++;
+		}
+	}
+
+	VirtualFree(reinterpret_cast<void*>(p_unpacked), 0, MEM_RELEASE);
 
 	return 0;
 }
