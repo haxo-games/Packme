@@ -7,6 +7,8 @@
 #include <windows.h>
 #include <zlib.h>
 
+#include "utils.h"
+
 namespace PE64
 {
     //
