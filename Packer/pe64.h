@@ -133,6 +133,9 @@ namespace PE64
             while (raw_data.size() < first_section_offset)
                 raw_data.push_back(0);
 
+            if (raw_data.size() < first_section_offset)
+                raw_data.resize(first_section_offset, 0);
+
             for (size_t i{}; i < sections.size(); i++) 
             {
                 const auto& section = sections[i];
@@ -156,6 +159,19 @@ namespace PE64
 
             for (auto& selected_section_data : section_data)
                 active_size += selected_section_data.size();
+
+            for (auto& section : sections)
+            {
+                if (section.SizeOfRawData == 0)
+                    continue;
+
+                size_t raw_ptr_diff{ section.PointerToRawData - active_size };
+
+                if (raw_ptr_diff != 0)
+                    active_size += raw_ptr_diff;
+
+                active_size += section.SizeOfRawData;
+            }
 
             return active_size;
         }

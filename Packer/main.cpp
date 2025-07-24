@@ -59,7 +59,7 @@ int main(int argc, char** argv)
     stub_pe.sections.push_back(new_section);
     stub_pe.section_data.push_back(compressed_input_pe);
     stub_pe.file_header.NumberOfSections++;
-    stub_pe.optional_header.SizeOfImage = Utils::align<DWORD>(new_section.VirtualAddress + new_section.Misc.VirtualSize, stub_pe.optional_header.SectionAlignment);
+    stub_pe.optional_header.SizeOfImage = new_section.VirtualAddress + Utils::align<DWORD>(new_section.Misc.VirtualSize, stub_pe.optional_header.SectionAlignment);
     stub_pe.optional_header.SizeOfInitializedData += new_section.SizeOfRawData;
 
     auto p_init_data_section{ stub_pe.findSectionByName(".data") };
