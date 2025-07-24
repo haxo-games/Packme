@@ -47,20 +47,16 @@ int main(int argc, char** argv)
 
     compressed_input_pe.resize(new_compressed_pe_size);
 
+    // Setup the new section which will contain the packed binary
     IMAGE_SECTION_HEADER new_section{};
     memcpy(new_section.Name, ".packed", 8);
     new_section.VirtualAddress = Utils::align<DWORD>(p_last_virtual_section->VirtualAddress + p_last_virtual_section->Misc.VirtualSize, stub_pe.optional_header.SectionAlignment);
     new_section.Misc.VirtualSize = original_compressed_pe_size;
     new_section.PointerToRawData = Utils::align<DWORD>(p_last_physical_section->PointerToRawData + p_last_physical_section->SizeOfRawData, stub_pe.optional_header.FileAlignment);
     new_section.SizeOfRawData = new_compressed_pe_size;
-    
     new_section.Characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ;
 
-    stub_pe.sections.push_back(new_section);
-    stub_pe.section_data.push_back(compressed_input_pe);
-    stub_pe.file_header.NumberOfSections++;
-    stub_pe.optional_header.SizeOfImage = new_section.VirtualAddress + Utils::align<DWORD>(new_section.Misc.VirtualSize, stub_pe.optional_header.SectionAlignment);
-    stub_pe.optional_header.SizeOfInitializedData += new_section.SizeOfRawData;
+    stub_pe.insertSection(new_section, compressed_input_pe);
 
     auto p_init_data_section{ stub_pe.findSectionByName(".data") };
     if (!p_init_data_section)

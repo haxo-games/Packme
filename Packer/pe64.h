@@ -94,6 +94,15 @@ namespace PE64
             return p_last_virtual_section;
         }
 
+        void insertSection(IMAGE_SECTION_HEADER& section_header, std::vector<std::uint8_t>& data)
+        {
+            sections.push_back(section_header);
+            section_data.push_back(data);
+            file_header.NumberOfSections++;
+            optional_header.SizeOfImage = section_header.VirtualAddress + Utils::align<DWORD>(section_header.Misc.VirtualSize, optional_header.SectionAlignment);
+            optional_header.SizeOfInitializedData += section_header.SizeOfRawData;
+        }
+
         uint8_t* getSectionData(IMAGE_SECTION_HEADER& section)
         {
             for (size_t i{}; i < sections.size(); i++)
