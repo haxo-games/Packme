@@ -23,7 +23,6 @@ int main(int argc, char** argv)
     }
 
     std::cout << "[+] Reading input...\n";
-
     PE64::PE input_pe;
     auto input_path{ Arguments::getValue<std::string>(arguments, "-i").value() };
     if (PE64::parsePeFromFile(input_path.c_str(), input_pe))
