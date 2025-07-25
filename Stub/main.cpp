@@ -1,4 +1,4 @@
-#include <cstdio> 
+#include <iostream>
 
 #include <windows.h>
 #include <zlib.h>
@@ -32,7 +32,7 @@ int main()
 	IMAGE_DOS_HEADER* p_dos_header{ reinterpret_cast<IMAGE_DOS_HEADER*>(p_unpacked) };
 	IMAGE_NT_HEADERS64* p_nt_headers{ reinterpret_cast<IMAGE_NT_HEADERS64*>(p_unpacked + p_dos_header->e_lfanew) };
 
-	uintptr_t p_final_unpacked{ reinterpret_cast<uintptr_t>(VirtualAlloc(nullptr, p_nt_headers->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) }; // TEMP SETTING WITH EXECUTE TO CHANGE
+	uintptr_t p_final_unpacked{ reinterpret_cast<uintptr_t>(VirtualAlloc((void*)p_nt_headers->OptionalHeader.ImageBase, p_nt_headers->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) }; // TEMP SETTING WITH EXECUTE TO CHANGE
 
 	if (!p_final_unpacked)
 		return 4;
@@ -81,11 +81,12 @@ int main()
 			uint16_t* p_relocation_entry{ reinterpret_cast<uint16_t*>(reinterpret_cast<uintptr_t>(p_relocation) + sizeof(IMAGE_BASE_RELOCATION)) };
 			for (int i{}; i < (p_relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION)) / sizeof(uint16_t); i++)
 			{
-				uint32_t full_value{};
-				uint16_t next_entry{ p_relocation_entry[i + 1] };
 
 				uint8_t type{ static_cast<uint8_t>((p_relocation_entry[i] & 0xF000) >> 12) };
 				uintptr_t location{ p_unpacked + p_relocation->VirtualAddress + (p_relocation_entry[i] & 0x0FFF) };
+
+				uint32_t full_value{};
+				uint16_t next_entry{};
 
 				// https://learn.microsoft.com/en-us/windows/win32/debug/pe-format#base-relocation-types
 				switch (type)
@@ -100,16 +101,16 @@ int main()
 					*reinterpret_cast<uint32_t*>(location) += delta_address;
 					break;
 				case IMAGE_REL_BASED_HIGHADJ:
-					full_value = (static_cast<uint32_t>(*reinterpret_cast<uint16_t*>(location)) << 16) + next_entry;
-
-					full_value += delta_address;
+					full_value = (static_cast<uint32_t>(*reinterpret_cast<uint16_t*>(location)) << 16) + next_entry + delta_address;
+					next_entry = p_relocation_entry[i + 1];
 					*reinterpret_cast<uint16_t*>(location) = static_cast<uint16_t>(full_value >> 16);
 					i++;
-
 					break;
 				case IMAGE_REL_BASED_DIR64:
 					*reinterpret_cast<uint64_t*>(location) += delta_address;
 					break;
+				default:
+					return 9;
 				}
 			}
 
@@ -159,7 +160,8 @@ int main()
 			p_import_descriptor++;
 		}
 	}
-
+	
+	p_section_headers = IMAGE_FIRST_SECTION(p_nt_headers);
 	for (int i{}; i < p_nt_headers->FileHeader.NumberOfSections; i++)
 	{
 		IMAGE_SECTION_HEADER* current_section{ &p_section_headers[i] };
