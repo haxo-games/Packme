@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>17.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{48858013-d9d6-4eb1-a04d-0c6017025983}</ProjectGuid>
-    <RootNamespace>Stub</RootNamespace>
+    <ProjectGuid>{52051757-27a9-4589-8896-b9979ae46fe9}</ProjectGuid>
+    <RootNamespace>ExecutableStub</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -105,19 +105,21 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>Default</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)dependencies\include</AdditionalIncludeDirectories>
-      <ExceptionHandling>false</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
+      <AdditionalIncludeDirectories>$(SolutionDir)dependencies\include</AdditionalIncludeDirectories>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <ControlFlowGuard>false</ControlFlowGuard>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ExceptionHandling>false</ExceptionHandling>
+      <Optimization>MinSpace</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EntryPointSymbol>main</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(SolutionDir)dependencies\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);zlibstatic.lib</AdditionalDependencies>
     </Link>
@@ -126,28 +128,32 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <SDLCheck>false</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>Default</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <AdditionalIncludeDirectories>$(SolutionDir)dependencies\include</AdditionalIncludeDirectories>
-      <ExceptionHandling>false</ExceptionHandling>
       <BufferSecurityCheck>false</BufferSecurityCheck>
-      <ControlFlowGuard>false</ControlFlowGuard>
+      <AdditionalIncludeDirectories>$(SolutionDir)dependencies\include</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ExceptionHandling>false</ExceptionHandling>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <Optimization>MinSpace</Optimization>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <EntryPointSymbol>main</EntryPointSymbol>
       <AdditionalLibraryDirectories>$(SolutionDir)dependencies\lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);zlibstatic.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\shared\common.h" />
+    <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClInclude Include="..\shared\common.h" />
+    <ClInclude Include="crt.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

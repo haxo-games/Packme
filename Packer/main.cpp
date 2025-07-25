@@ -28,7 +28,7 @@ int main(int argc, char** argv)
     if (PE64::parsePeFromFile(input_path.c_str(), input_pe))
         return 1;
 
-    HRSRC h_stub_resource{ FindResourceW(0, MAKEINTRESOURCE(STUB_BINARY), RT_RCDATA) };
+    HRSRC h_stub_resource{ FindResourceW(0, MAKEINTRESOURCE(IDR_EXECUTABLE_STUB), RT_RCDATA) };
 
     if (!h_stub_resource)
     {
@@ -59,6 +59,7 @@ int main(int argc, char** argv)
     new_section.SizeOfRawData = new_compressed_pe_size;
     new_section.Characteristics = IMAGE_SCN_CNT_INITIALIZED_DATA | IMAGE_SCN_MEM_READ;
 
+    stub_pe.optional_header.Subsystem = input_pe.optional_header.Subsystem;
     stub_pe.insertSection(new_section, compressed_input_pe);
 
     auto p_init_data_section{ stub_pe.findSectionByName(".data") };

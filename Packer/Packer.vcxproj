@@ -143,7 +143,12 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="stub.rc" />
+    <_EmbedManagedResourceFile Include="..\x64\Release\ExecutableStub.exe">
+      <FileType>Document</FileType>
+    </_EmbedManagedResourceFile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ExecutableStub.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
