@@ -28,7 +28,7 @@ int main(int argc, char** argv)
     if (PE64::parsePeFromFile(input_path.c_str(), input_pe))
         return 1;
 
-    HRSRC h_stub_resource{ FindResourceW(0, MAKEINTRESOURCE(STUB_BINARY), RT_RCDATA) };
+    HRSRC h_stub_resource{ FindResourceW(0, MAKEINTRESOURCE(IDR_EXECUTABLE_STUB), RT_RCDATA) };
 
     if (!h_stub_resource)
     {

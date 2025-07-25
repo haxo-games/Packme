@@ -30,9 +30,6 @@
     <ClInclude Include="pe64.h">
       <Filter>utils</Filter>
     </ClInclude>
-    <ClInclude Include="resource.h">
-      <Filter>resources</Filter>
-    </ClInclude>
     <ClInclude Include="utils.h">
       <Filter>utils</Filter>
     </ClInclude>
@@ -42,9 +39,17 @@
     <ClInclude Include="..\dependencies\include\zlib.h">
       <Filter>dependencies\zlib</Filter>
     </ClInclude>
+    <ClInclude Include="resource.h">
+      <Filter>resources</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="stub.rc">
+    <_EmbedManagedResourceFile Include="..\x64\Release\ExecutableStub.exe">
+      <Filter>resources</Filter>
+    </_EmbedManagedResourceFile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ExecutableStub.rc">
       <Filter>resources</Filter>
     </ResourceCompile>
   </ItemGroup>

@@ -1,24 +1,23 @@
-#include <iostream>
-
 #include <windows.h>
 #include <zlib.h>
 
+#include "crt.h"
 #include "../shared/common.h"
 
-int main()
+extern "C" void main()
 {
-	// DO NOT REMOVE! PREVENTS COMPILER FROM OPTIMIZING AWAY
+	// DO NOT REMOVE! HERE TO PREVENT FROM BEING OPTIMIZED AWAY
 	(void)stub_config;
 
 	HMODULE h_module{ GetModuleHandle(0) };
 	if (!h_module)
-		return 1;
+		return ExitProcess(1);
 
 	uint8_t* p_packed{ reinterpret_cast<uint8_t*>(h_module) + stub_config.packed_data_rva };
 
 	uintptr_t p_unpacked{ reinterpret_cast<uintptr_t>(VirtualAlloc(nullptr, stub_config.original_data_size, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) };
 	if (!p_unpacked)
-		return 2;
+		return ExitProcess(2);
 
 	uLongf dest_len{ stub_config.original_data_size };
 	int return_code{ uncompress(reinterpret_cast<Bytef*>(p_unpacked), &dest_len, p_packed, stub_config.packed_data_size) };
@@ -26,7 +25,7 @@ int main()
 	if (return_code != Z_OK)
 	{
 		VirtualFree(reinterpret_cast<void*>(p_unpacked), 0, MEM_RELEASE);
-		return 3;
+		return ExitProcess(3);
 	}
 
 	IMAGE_DOS_HEADER* p_dos_header{ reinterpret_cast<IMAGE_DOS_HEADER*>(p_unpacked) };
@@ -35,7 +34,7 @@ int main()
 	uintptr_t p_final_unpacked{ reinterpret_cast<uintptr_t>(VirtualAlloc((void*)p_nt_headers->OptionalHeader.ImageBase, p_nt_headers->OptionalHeader.SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE)) }; // TEMP SETTING WITH EXECUTE TO CHANGE
 
 	if (!p_final_unpacked)
-		return 4;
+		return ExitProcess(4);
 
 	// Copy all headers
 	size_t size_of_headers{ p_nt_headers->OptionalHeader.SizeOfHeaders };
@@ -73,7 +72,7 @@ int main()
 	if (delta_address)
 	{
 		if (!p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
-			return 5;
+			return ExitProcess(5);
 
 		IMAGE_BASE_RELOCATION* p_relocation{ reinterpret_cast<IMAGE_BASE_RELOCATION*>(p_unpacked + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress) };
 		while (reinterpret_cast<uintptr_t>(p_relocation) < p_unpacked + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress + p_nt_headers->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC].Size)
@@ -110,7 +109,7 @@ int main()
 					*reinterpret_cast<uint64_t*>(location) += delta_address;
 					break;
 				default:
-					return 9;
+					return ExitProcess(6);
 				}
 			}
 
@@ -128,7 +127,7 @@ int main()
 			HMODULE h_module{ LoadLibraryA(module_name) };
 
 			if (!h_module)
-				return 6;
+				return ExitProcess(7);
 
 			IMAGE_THUNK_DATA* p_int{ reinterpret_cast<IMAGE_THUNK_DATA*>(p_unpacked + p_import_descriptor->OriginalFirstThunk) };
 			IMAGE_THUNK_DATA* p_iat{ reinterpret_cast<IMAGE_THUNK_DATA*>(p_unpacked + p_import_descriptor->FirstThunk) };
@@ -149,7 +148,7 @@ int main()
 				}
 
 				if (function_address == nullptr)
-					return 7;
+					return ExitProcess(8);
 
 				p_iat->u1.Function = reinterpret_cast<ULONG_PTR>(function_address);
 
@@ -160,7 +159,7 @@ int main()
 			p_import_descriptor++;
 		}
 	}
-	
+
 	p_section_headers = IMAGE_FIRST_SECTION(p_nt_headers);
 	for (int i{}; i < p_nt_headers->FileHeader.NumberOfSections; i++)
 	{
@@ -192,16 +191,15 @@ int main()
 
 		DWORD old_protection;
 		if (!VirtualProtect(reinterpret_cast<void*>(dest_va), current_section->Misc.VirtualSize, protection, &old_protection))
-			return 8;
+			return ExitProcess(9);
 	}
 
 	DWORD old_protection;
 	VirtualProtect(reinterpret_cast<void*>(p_unpacked), p_nt_headers->OptionalHeader.SizeOfHeaders, PAGE_READONLY, &old_protection);
 
-	// This assumes a console app entry point
 	uintptr_t p_entry{ p_unpacked + p_nt_headers->OptionalHeader.AddressOfEntryPoint };
-	int result{ reinterpret_cast<int(*)()>(p_unpacked + p_nt_headers->OptionalHeader.AddressOfEntryPoint)()};
+	int result{ reinterpret_cast<int(*)()>(p_unpacked + p_nt_headers->OptionalHeader.AddressOfEntryPoint)() };
 
 	VirtualFree(reinterpret_cast<void*>(p_unpacked), 0, MEM_RELEASE);
-	return result;
+	ExitProcess(result);
 }
