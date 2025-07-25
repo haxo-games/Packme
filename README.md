@@ -5,6 +5,13 @@
 A simple command-line packer for Windows x86_64 executables. Like many of our public projects this was made because we needed it to better explain 
 some of [our courses](https://haxo.games/courses).
 
+## How does it work?
+
+The Visual Studio project as of writing this consists of two solutions: "Packer" and "Stub". The project is configured to compile "Stub" first and then "Packer". The reason
+for that has to do with how the packer handles the stub. It is directly added to its resources which the packer will just read and add a section containing the compressed PE.
+It then locates a specific structures within the stub's `.data` section and sets its fields to specify where the packed section is, how big it is and how much space it requires once
+it is unpacked.
+
 ## Build
 
 All this requires is Visual Studio 2022 (minimum) and the "Desktop Development with C++" package installed. The reason this uses Visual Studio in the first place and not a
