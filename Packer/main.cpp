@@ -22,6 +22,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::cout << "[+] Reading input...\n";
+
     PE64::PE input_pe;
     auto input_path{ Arguments::getValue<std::string>(arguments, "-i").value() };
     if (PE64::parsePeFromFile(input_path.c_str(), input_pe))
@@ -45,7 +47,9 @@ int main(int argc, char** argv)
     IMAGE_SECTION_HEADER* p_last_physical_section{ stub_pe.findLastPhysicalSection() };
     IMAGE_SECTION_HEADER* p_last_virtual_section{ stub_pe.findLastVirtualSection() };
 
+    std::cout << "[+] Compressing input...\n";
     compressed_input_pe.resize(new_compressed_pe_size);
+    std::cout << "[+] Input compressed!\n";
 
     // Setup the new section which will contain the packed binary
     IMAGE_SECTION_HEADER new_section{};
@@ -89,6 +93,8 @@ int main(int argc, char** argv)
     auto raw_stub{ stub_pe.getRaw() };
     output.write(reinterpret_cast<const char*>(raw_stub.data()), raw_stub.size());
     output.close();
+
+    std::cout << "[+] PE packed! Check \"packed.exe\" for the result." << std::endl;
 
     return 0;
 }
